@@ -4,7 +4,6 @@ import streamlit as st
 from dotenv import load_dotenv
 import google.generativeai as gen_ai
 
-
 # Load environment variables
 load_dotenv()
 
@@ -16,11 +15,17 @@ st.set_page_config(
 )
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+if not GOOGLE_API_KEY:
+    st.error("Google API key is missing. Please set it in the .env file.")
+    st.stop()
 
 # Set up Google Gemini-Pro AI model
-gen_ai.configure(api_key=GOOGLE_API_KEY)
-model = gen_ai.GenerativeModel('gemini-pro')
-
+try:
+    gen_ai.configure(api_key=GOOGLE_API_KEY)
+    model = gen_ai.GenerativeModel('gemini-pro')
+except Exception as e:
+    st.error(f"Failed to configure the AI model: {e}")
+    st.stop()
 
 # Function to translate roles between Gemini-Pro and Streamlit terminology
 def translate_role_for_streamlit(user_role):
@@ -29,14 +34,16 @@ def translate_role_for_streamlit(user_role):
     else:
         return user_role
 
-
 # Initialize chat session in Streamlit if not already present
 if "chat_session" not in st.session_state:
-    st.session_state.chat_session = model.start_chat(history=[])
-
+    try:
+        st.session_state.chat_session = model.start_chat(history=[])
+    except Exception as e:
+        st.error(f"Failed to start chat session: {e}")
+        st.stop()
 
 # Display the chatbot's title on the page
-st.title("🤖 Gemini Pro - ChatBot")
+st.title("🤖 Gemini - ChatBot")
 
 # Display the chat history
 for message in st.session_state.chat_session.history:
@@ -50,8 +57,10 @@ if user_prompt:
     st.chat_message("user").markdown(user_prompt)
 
     # Send user's message to Gemini-Pro and get the response
-    gemini_response = st.session_state.chat_session.send_message(user_prompt)
-
-    # Display Gemini-Pro's response
-    with st.chat_message("assistant"):
-        st.markdown(gemini_response.text)
+    try:
+        gemini_response = st.session_state.chat_session.send_message(user_prompt)
+        # Display Gemini-Pro's response
+        with st.chat_message("assistant"):
+            st.markdown(gemini_response.text)
+    except Exception as e:
+        st.error(f"Failed to get response from Gemini-Pro: {e}")
